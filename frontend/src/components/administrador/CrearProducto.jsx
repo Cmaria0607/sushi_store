@@ -4,6 +4,8 @@ import axios from 'axios';
 const Productos = () => {
   const [productos, setProductos] = useState([]);
   const [showForm, setShowForm] = useState(false);
+  const [modoEdicion, setModoEdicion] = useState(false);
+  const [idEditar, setIdEditar] = useState(null);
   const [producto, setProducto] = useState({
     nombre: '',
     descripcion: '',
@@ -15,8 +17,8 @@ const Productos = () => {
   const [materiasPrimas, setMateriasPrimas] = useState([]);
   const [seleccionadas, setSeleccionadas] = useState([]);
   const [busqueda, setBusqueda] = useState('');
-  const [detallesVisibles, setDetallesVisibles] = useState({}); // Para controlar qué tarjetas muestran detalles
-  const [materiasPorProducto, setMateriasPorProducto] = useState({}); // Guardar materias primas por producto
+  const [detallesVisibles, setDetallesVisibles] = useState({});
+  const [materiasPorProducto, setMateriasPorProducto] = useState({});
 
   useEffect(() => {
     cargarProductos();
@@ -60,58 +62,80 @@ const Productos = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const resProducto = await axios.post('http://localhost:5000/productos/', producto);
-      const productoId = resProducto.data.id;
+      if (modoEdicion && idEditar) {
+        await axios.put(`http://localhost:5000/productos/${idEditar}`, producto);
+        setMensaje('Producto actualizado correctamente');
+      } else {
+        const resProducto = await axios.post('http://localhost:5000/productos/', producto);
+        const productoId = resProducto.data.id;
 
-      for (const materia of seleccionadas) {
-        await axios.post('http://localhost:5000/materia_prima/asociar', {
-          producto_id: productoId,
-          materia_prima_id: materia.id,
-          cantidad: materia.cantidad
-        });
+        for (const materia of seleccionadas) {
+          await axios.post('http://localhost:5000/materia_prima/asociar', {
+            producto_id: productoId,
+            materia_prima_id: materia.id,
+            cantidad: materia.cantidad
+          });
 
-        const materiaBase = materiasPrimas.find(mp => mp.id === materia.id);
-        const nuevaCantidad = parseFloat(materiaBase.cantidad) - parseFloat(materia.cantidad);
+          const materiaBase = materiasPrimas.find(mp => mp.id === materia.id);
+          const nuevaCantidad = parseFloat(materiaBase.cantidad) - parseFloat(materia.cantidad);
 
-        await axios.put('http://localhost:5000/materia_prima/${materia.id}',{
-          cantidad: nuevaCantidad,
-        });
+          await axios.put(`http://localhost:5000/materia_prima/${materia.id}`, {
+            cantidad: nuevaCantidad,
+          });
+        }
+
+        setMensaje('Producto creado exitosamente!');
       }
 
-      setMensaje('Producto creado exitosamente!');
       setProducto({ nombre: '', descripcion: '', imagen: '', precio_venta: '', agotado: false });
       setSeleccionadas([]);
       setBusqueda('');
       setShowForm(false);
+      setModoEdicion(false);
+      setIdEditar(null);
       cargarProductos();
-
-    } catch (err){
+    } catch (err) {
       console.error(err);
-      setMensaje('Error al crear el producto');
+      setMensaje('Error al procesar el producto');
     }
   };
 
-  /* const toggleAgotado = async (id, actual) => {
-    try {
-      await axios.put("http://localhost:5000/productos/${id}", { agotado: !actual }),
-      cargarProductos();
-    } catch (error) {
-      console.error('Error al actualizar estado agotado', error);
+  const editarProducto = (producto) => {
+    setProducto({
+      nombre: producto.nombre,
+      descripcion: producto.descripcion,
+      imagen: producto.imagen,
+      precio_venta: producto.precio_venta,
+      agotado: producto.agotado
+    });
+    setIdEditar(producto.id);
+    setModoEdicion(true);
+    setShowForm(true);
+    setMensaje('');
+  };
+
+  const eliminarProducto = async (id) => {
+    if (window.confirm('¿Estás seguro de eliminar este producto?')) {
+      try {
+        await axios.delete(`http://localhost:5000/productos/${id}`);
+        setMensaje('Producto eliminado correctamente');
+        cargarProductos();
+      } catch (error) {
+        console.error('Error al eliminar producto', error);
+        setMensaje('Error al eliminar el producto');
+      }
     }
   };
- */
+
   const toggleDetalles = async (id) => {
-    // Si ya tenemos los detalles cargados, solo alternamos la visibilidad
     if (materiasPorProducto[id]) {
       setDetallesVisibles(prev => ({ ...prev, [id]: !prev[id] }));
       return;
     }
     try {
       const res = await axios.get(`http://localhost:5000/productos/${id}/materia_prima`);
-      console.log('Materias por producto:', res.data);
       setMateriasPorProducto(prev => ({ ...prev, [id]: res.data }));
       setDetallesVisibles(prev => ({ ...prev, [id]: true }));
-
     } catch (error) {
       console.error('Error al cargar materias primas del producto', error);
     }
@@ -129,6 +153,8 @@ const Productos = () => {
         onClick={() => {
           setShowForm(!showForm);
           setMensaje('');
+          setModoEdicion(false);
+          setProducto({ nombre: '', descripcion: '', imagen: '', precio_venta: '', agotado: false });
         }}
         className="mb-6 px-4 py-2 bg-orange-600 text-white rounded hover:bg-gray-800"
       >
@@ -215,9 +241,9 @@ const Productos = () => {
 
           <button
             type="submit"
-            className="mt-4 bg-green-600 hover:bg-green-700 text-white font-semibold px-4 py-2 rounded"
+            className="mt-4 bg-orange-500 hover:bg-gray-800 text-white font-semibold px-4 py-2 rounded"
           >
-            Crear Producto
+            {modoEdicion ? 'Actualizar Producto' : 'Crear Producto'}
           </button>
         </form>
       )}
@@ -226,11 +252,8 @@ const Productos = () => {
         {productos.map(producto => (
           <div
             key={producto.id}
-            className={`bg-white rounded-lg shadow p-4 flex flex-col items-center
-              ${producto.agotado ? 'opacity-50' : ''
-
-              }`}
-              >
+            className={`bg-white rounded-lg shadow p-4 flex flex-col items-center ${producto.agotado ? 'opacity-50' : ''}`}
+          >
             <img
               src={producto.imagen || '/placeholder.jpg'}
               alt={producto.nombre}
@@ -239,15 +262,21 @@ const Productos = () => {
             <h3 className="text-xl font-bold">{producto.nombre}</h3>
             <p className="text-gray-600">{producto.descripcion}</p>
             <span className="text-red-500 font-bold mt-2">${producto.precio_venta}</span>
-              <div/>
-           {/*  <button
-              onClick={() => toggleAgotado(producto.id, producto.agotado)}
-              className={mt-4 px-3 py-1 rounded text-white ${
-                producto.agotado ? 'bg-yellow-500 hover:bg-yellow-600' : 'bg-red-600 hover:bg-red-700'
-              }}
-            >
-              {producto.agotado ? 'Marcar como Disponible' : 'Marcar como Agotado'}
-            </button> */}
+
+            <div className="flex gap-2 mt-4">
+              <button
+                onClick={() => editarProducto(producto)}
+                className="px-3 py-1 rounded bg-orange-500 hover:bg-gray-800 text-white"
+              >
+                Editar
+              </button>
+              <button
+                onClick={() => eliminarProducto(producto.id)}
+                className="px-3 py-1 rounded bg-orange-500 hover:bg-gray-800 text-white"
+              >
+                Eliminar
+              </button>
+            </div>
 
             <button
               onClick={() => toggleDetalles(producto.id)}

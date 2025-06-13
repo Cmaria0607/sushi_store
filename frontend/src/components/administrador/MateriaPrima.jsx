@@ -129,26 +129,27 @@ const MateriaPrima = () => {
       )}
 
       <div className="flex flex-col gap-4">
-        {materiasFiltradas.map(mp => (
-          <div key={mp.id} className="bg-white rounded-lg shadow p-4 flex flex-col md:flex-row items-center md:items-start gap-4">
+        {materiasFiltradas.map(materia_prima => (
+          <div key={materia_prima.id} className="bg-white rounded-lg shadow p-4 flex flex-col md:flex-row items-center md:items-start gap-4">
             <img
-              src={mp.imagen || '/placeholder.jpg'}
-              alt={mp.nombre}
+              src={materia_prima.imagen || '/placeholder.jpg'}
+              alt={materia_prima.nombre}
               className="w-24 h-24 object-cover rounded mb-3"
             />
             <div className="flex-1 w-full">
               <div className="flex justify-between items-center">
-                <h3 className="text-xl font-bold">{mp.nombre}</h3>
+                <h3 className="text-xl font-bold">{materia_prima.nombre}</h3>
                 <div className="flex gap-2">
-                  <button onClick={() => handleEditar(mp)} className="text-blue-600 hover:text-blue-800 font-bold">Editar</button>
-                  <button onClick={() => handleEliminar(mp.id)} className="text-red-600 hover:text-red-800 font-bold">Eliminar</button>
+                  <button onClick={() => handleEditar(materia_prima)} className="text-blue-600 hover:text-blue-800 font-bold">Editar</button>
+                  <button onClick={() => handleEliminar(materia_prima.id)} className="text-red-600 hover:text-red-800 font-bold">Eliminar</button>
                 </div>
               </div>
-              <p className="text-gray-600">Cantidad: {mp.cantidad} {mp.unidad_medida}</p>
-              <p className="text-gray-600">Vence: {mp.fecha_vencimiento}</p>
-              <p className="text-gray-600">Costo unitario: ${mp.costo_unitario}</p>
+              <p className="text-gray-600">Cantidad: {materia_prima.cantidad} {materia_prima.unidad_medida}</p>
+              <p className="text-gray-600">Vence: {materia_prima.fecha_vencimiento}</p>
+              <p className="text-gray-600">Costo unitario: ${materia_prima.costo_unitario}</p>
             </div>
           </div>
+          
         ))}
       </div>
     </div>

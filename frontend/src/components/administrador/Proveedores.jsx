@@ -112,7 +112,7 @@ const Proveedores = () => {
             <div>
               <b>Materia(s) prima(s):</b>
               <ul className="list-disc ml-6">
-                {(proveedor.materias_primas || []).map((materia_prima) => (
+                {(proveedor.materia_prima || []).map((materia_prima) => (
                   <li key={materia_prima.id}>
                     {materia_prima.nombre} ({materia_prima.unidad})
                   </li>
