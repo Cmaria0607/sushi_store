@@ -60,45 +60,55 @@ const Productos = () => {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      if (modoEdicion && idEditar) {
-        await axios.put(`http://localhost:5000/productos/${idEditar}`, producto);
-        setMensaje('Producto actualizado correctamente');
-      } else {
-        const resProducto = await axios.post('http://localhost:5000/productos/', producto);
-        const productoId = resProducto.data.id;
+  e.preventDefault();
+  try {
+    if (modoEdicion && idEditar) {
+      await axios.put(`http://localhost:5000/productos/${idEditar}`, producto);
+      setMensaje('Producto actualizado correctamente');
+    } else {
+      const resProducto = await axios.post('http://localhost:5000/productos/', producto);
+      const nuevoProducto = resProducto.data;
+      const productoId = nuevoProducto.id;
 
-        for (const materia of seleccionadas) {
-          await axios.post('http://localhost:5000/materia_prima/asociar', {
-            producto_id: productoId,
-            materia_prima_id: materia.id,
-            cantidad: materia.cantidad
-          });
+      for (const materia of seleccionadas) {
+        await axios.post('http://localhost:5000/materia_prima/asociar', {
+          producto_id: productoId,
+          materia_prima_id: materia.id,
+          cantidad: materia.cantidad
+        });
 
-          const materiaBase = materiasPrimas.find(mp => mp.id === materia.id);
-          const nuevaCantidad = parseFloat(materiaBase.cantidad) - parseFloat(materia.cantidad);
+        const materiaBase = materiasPrimas.find(mp => mp.id === materia.id);
+        const nuevaCantidad = parseFloat(materiaBase.cantidad) - parseFloat(materia.cantidad);
 
-          await axios.put(`http://localhost:5000/materia_prima/${materia.id}`, {
-            cantidad: nuevaCantidad,
-          });
-        }
-
-        setMensaje('Producto creado exitosamente!');
+        await axios.put(`http://localhost:5000/materia_prima/${materia.id}`, {
+          cantidad: nuevaCantidad,
+        });
       }
 
-      setProducto({ nombre: '', descripcion: '', imagen: '', precio_venta: '', agotado: false });
-      setSeleccionadas([]);
-      setBusqueda('');
-      setShowForm(false);
-      setModoEdicion(false);
-      setIdEditar(null);
-      cargarProductos();
-    } catch (err) {
-      console.error(err);
-      setMensaje('Error al procesar el producto');
+      setMensaje('Producto creado exitosamente!');
     }
-  };
+
+    // 🔁 Asegura que se actualiza la lista de productos tras crear/editar
+    await cargarProductos();
+
+    // ✅ Limpieza del formulario
+    setProducto({ nombre: '', descripcion: '', imagen: '', precio_venta: '', agotado: false });
+    setSeleccionadas([]);
+    setBusqueda('');
+    setShowForm(false);
+    setModoEdicion(false);
+    setIdEditar(null);
+
+  } catch (err) {
+    console.error('Error al crear/actualizar producto:', err);
+    if (err.response?.data) {
+      setMensaje(`Error: ${err.response.data.message || JSON.stringify(err.response.data)}`);
+    } else {
+      setMensaje('Error inesperado al procesar el producto');
+    }
+  }
+};
+
 
   const editarProducto = (producto) => {
     setProducto({
